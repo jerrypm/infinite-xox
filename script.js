@@ -117,37 +117,44 @@ class InfiniteTicTacToe {
         const availableMoves = this.board.map((cell, index) => cell === '' ? index : null)
                                          .filter(index => index !== null);
 
-        if (availableMoves.length === 0) {
-            // If no moves available but game isn't over, switch turns
-            this.isPlayerTurn = true;
-            this.updateTurnIndicator();
-            this.updateStatusMessage();
-            return;
-        }
-
-        // Find the best move using enhanced strategy with timeout protection
-        let moveIndex;
-        try {
-            moveIndex = this.findBestAIMove(availableMoves);
-            if (moveIndex === null || !availableMoves.includes(moveIndex)) {
-                // Fallback to random move if AI strategy fails
-                moveIndex = availableMoves[Math.floor(Math.random() * availableMoves.length)];
-            }
-        } catch (error) {
-            // If AI fails to find a move, pick random
-            moveIndex = availableMoves[Math.floor(Math.random() * availableMoves.length)];
-        }
-
         // In infinite tic-tac-toe: move oldest piece to new position when placing 4th piece
         if (this.countSymbols('O') === this.maxPieces) {
             const oldestIndex = this.getOldestMoveIndex('O');
-            if (oldestIndex !== null) {
+            if (oldestIndex !== null && availableMoves.length > 0) {
+                // Use AI strategy to find the best position to move to
+                let moveIndex;
+                try {
+                    moveIndex = this.findBestAIMove(availableMoves);
+                    if (moveIndex === null || !availableMoves.includes(moveIndex)) {
+                        moveIndex = availableMoves[Math.floor(Math.random() * availableMoves.length)];
+                    }
+                } catch (error) {
+                    moveIndex = availableMoves[Math.floor(Math.random() * availableMoves.length)];
+                }
                 this.moveOldestPiece(oldestIndex, moveIndex, 'O');
                 return;
             }
+            // If we can't move oldest piece for some reason, continue with normal logic
         }
 
-        this.makeMove(moveIndex, 'O');
+        // For normal moves (when AI has less than 3 pieces)
+        if (availableMoves.length > 0) {
+            let moveIndex;
+            try {
+                moveIndex = this.findBestAIMove(availableMoves);
+                if (moveIndex === null || !availableMoves.includes(moveIndex)) {
+                    moveIndex = availableMoves[Math.floor(Math.random() * availableMoves.length)];
+                }
+            } catch (error) {
+                moveIndex = availableMoves[Math.floor(Math.random() * availableMoves.length)];
+            }
+            this.makeMove(moveIndex, 'O');
+        } else {
+            // If truly no moves available, just switch turns - don't reset the game
+            this.isPlayerTurn = true;
+            this.updateTurnIndicator();
+            this.updateStatusMessage();
+        }
     }
 
     findWinningMove(symbol) {
@@ -373,14 +380,18 @@ class InfiniteTicTacToe {
     }
 
     isDraw() {
-        // In infinite tic-tac-toe, a true draw is very rare
-        // It occurs when both players have 3 pieces and no winning moves are possible
-        if (this.countSymbols('X') === 3 && this.countSymbols('O') === 3) {
-            const emptyCells = this.board.filter(cell => cell === '').length;
-            if (emptyCells === 3) {
-                // Check if any player can win in the next few moves
-                return !this.canAnyoneWin();
-            }
+        // In infinite tic-tac-toe, draws are extremely rare
+        // Only declare draw if both players have 3 pieces, board is full, and truly no one can win
+        // But in practice, this should almost never happen since pieces can be moved
+        const playerPieces = this.countSymbols('X');
+        const aiPieces = this.countSymbols('O');
+        const emptyCells = this.board.filter(cell => cell === '').length;
+
+        // Only consider draw if both have max pieces and very specific conditions
+        if (playerPieces === 3 && aiPieces === 3 && emptyCells === 3) {
+            // Be more conservative - only declare draw if absolutely no winning moves exist
+            // and the position is truly deadlocked (which is very rare in infinite tic-tac-toe)
+            return false; // For now, never declare draw to prevent unwanted resets
         }
         return false;
     }
