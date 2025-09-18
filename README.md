@@ -1,6 +1,7 @@
 # Infinite Tic-Tac-Toe
 
 A modern web-based implementation of infinite tic-tac-toe with AI opponent, inspired by the iOS Swift version.
+link in here: https://jerrypm.github.io/infinite-xox/
 
 ## Features
 
@@ -22,9 +23,11 @@ A modern web-based implementation of infinite tic-tac-toe with AI opponent, insp
 ## Running the Game
 
 ### Option 1: Simple File Opening
+
 Just open `index.html` in your web browser.
 
 ### Option 2: Local Server (Recommended)
+
 For the best experience, run a local server:
 
 ```bash
