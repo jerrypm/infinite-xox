@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Infinite Tic-Tac-Toe</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <!-- Header Section -->
+        <header class="header">
+            <div class="logo">
+                <h1 class="title">Infinite XOX</h1>
+                <p class="subtitle">Strategic Tic-Tac-Toe</p>
+            </div>
+            <div class="score-board">
+                <div class="score-item player">
+                    <span class="score-label">You</span>
+                    <span class="score-value" id="player-score">0</span>
+                </div>
+                <div class="vs-divider">VS</div>
+                <div class="score-item ai">
+                    <span class="score-label">AI</span>
+                    <span class="score-value" id="ai-score">0</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Game Status -->
+        <div class="game-status">
+            <div class="status-message" id="status-message">Your Turn (X)</div>
+            <div class="turn-indicator">
+                <div class="player-indicator active" id="player-indicator">
+                    <span class="symbol">X</span>
+                </div>
+                <div class="ai-indicator" id="ai-indicator">
+                    <span class="symbol">O</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Game Board -->
+        <main class="game-board-container">
+            <div class="game-board" id="game-board">
+                <div class="cell" data-index="0"></div>
+                <div class="cell" data-index="1"></div>
+                <div class="cell" data-index="2"></div>
+                <div class="cell" data-index="3"></div>
+                <div class="cell" data-index="4"></div>
+                <div class="cell" data-index="5"></div>
+                <div class="cell" data-index="6"></div>
+                <div class="cell" data-index="7"></div>
+                <div class="cell" data-index="8"></div>
+            </div>
+
+            <!-- Winning Line Overlay -->
+            <div class="winning-line" id="winning-line"></div>
+        </main>
+
+        <!-- Game Controls -->
+        <div class="game-controls">
+            <button class="btn btn-secondary" id="reset-round-btn">Reset Round</button>
+            <button class="btn btn-primary" id="new-game-btn">New Game</button>
+        </div>
+
+        <!-- Game Info -->
+        <div class="game-info">
+            <div class="info-card">
+                <h3>How to Play</h3>
+                <p>Each player can only have 3 pieces on the board. When you place a 4th piece, your oldest piece disappears!</p>
+            </div>
+            <div class="pieces-counter">
+                <div class="counter-item">
+                    <span class="counter-label">Your pieces:</span>
+                    <span class="counter-value" id="player-pieces">0</span>
+                </div>
+                <div class="counter-item">
+                    <span class="counter-label">AI pieces:</span>
+                    <span class="counter-value" id="ai-pieces">0</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Game Over Modal -->
+        <div class="modal" id="game-over-modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 id="modal-title">Game Over!</h2>
+                </div>
+                <div class="modal-body">
+                    <p id="modal-message">Congratulations! You won the game!</p>
+                    <div class="final-score">
+                        <div class="final-score-item">
+                            <span>You:</span>
+                            <span id="final-player-score">0</span>
+                        </div>
+                        <div class="final-score-item">
+                            <span>AI:</span>
+                            <span id="final-ai-score">0</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-primary" id="play-again-btn">Play Again</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
