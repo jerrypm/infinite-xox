@@ -8,6 +8,8 @@ class InfiniteTicTacToe {
         this.gameOver = false;
         this.maxPieces = 3;
         this.isProcessingMove = false;
+        this.roundCount = 0;
+        this.playerStartedLastRound = true;
 
         this.winningCombinations = [
             [0, 1, 2], [3, 4, 5], [6, 7, 8], // Rows
@@ -50,11 +52,12 @@ class InfiniteTicTacToe {
     }
 
     makePlayerMove(index) {
-        // In infinite tic-tac-toe: remove oldest piece when placing 4th piece
-        if (this.countSymbols('X') >= this.maxPieces) {
+        // In infinite tic-tac-toe: move oldest piece to new position when placing 4th piece
+        if (this.countSymbols('X') === this.maxPieces) {
             const oldestIndex = this.getOldestMoveIndex('X');
             if (oldestIndex !== null) {
-                this.removeOldestPiece(oldestIndex, 'X');
+                this.moveOldestPiece(oldestIndex, index, 'X');
+                return;
             }
         }
 
@@ -62,6 +65,15 @@ class InfiniteTicTacToe {
     }
 
     makeMove(index, symbol) {
+        // Validate move is legal
+        if (this.gameOver || this.isProcessingMove) return;
+
+        // Validate it's the correct player's turn
+        if ((symbol === 'X' && !this.isPlayerTurn) || (symbol === 'O' && this.isPlayerTurn)) {
+            console.warn('Invalid move: not player\'s turn');
+            return;
+        }
+
         this.isProcessingMove = true;
 
         this.board[index] = symbol;
@@ -73,7 +85,6 @@ class InfiniteTicTacToe {
 
         // Check for winner immediately after the move
         if (this.checkWinner(symbol)) {
-            this.isProcessingMove = false;
             this.handleRoundWin(symbol);
             return;
         }
@@ -101,24 +112,49 @@ class InfiniteTicTacToe {
     }
 
     makeAIMove() {
-        if (this.gameOver || this.isPlayerTurn) return;
+        if (this.gameOver || this.isPlayerTurn || this.isProcessingMove) return;
 
         const availableMoves = this.board.map((cell, index) => cell === '' ? index : null)
                                          .filter(index => index !== null);
 
-        if (availableMoves.length === 0) return;
-
-        // In infinite tic-tac-toe: remove oldest piece when placing 4th piece
-        if (this.countSymbols('O') >= this.maxPieces) {
+        // In infinite tic-tac-toe: move oldest piece to new position when placing 4th piece
+        if (this.countSymbols('O') === this.maxPieces) {
             const oldestIndex = this.getOldestMoveIndex('O');
-            if (oldestIndex !== null) {
-                this.removeOldestPiece(oldestIndex, 'O');
+            if (oldestIndex !== null && availableMoves.length > 0) {
+                // Use AI strategy to find the best position to move to
+                let moveIndex;
+                try {
+                    moveIndex = this.findBestAIMove(availableMoves);
+                    if (moveIndex === null || !availableMoves.includes(moveIndex)) {
+                        moveIndex = availableMoves[Math.floor(Math.random() * availableMoves.length)];
+                    }
+                } catch (error) {
+                    moveIndex = availableMoves[Math.floor(Math.random() * availableMoves.length)];
+                }
+                this.moveOldestPiece(oldestIndex, moveIndex, 'O');
+                return;
             }
+            // If we can't move oldest piece for some reason, continue with normal logic
         }
 
-        // Find the best move using enhanced strategy
-        let moveIndex = this.findBestAIMove(availableMoves);
-        this.makeMove(moveIndex, 'O');
+        // For normal moves (when AI has less than 3 pieces)
+        if (availableMoves.length > 0) {
+            let moveIndex;
+            try {
+                moveIndex = this.findBestAIMove(availableMoves);
+                if (moveIndex === null || !availableMoves.includes(moveIndex)) {
+                    moveIndex = availableMoves[Math.floor(Math.random() * availableMoves.length)];
+                }
+            } catch (error) {
+                moveIndex = availableMoves[Math.floor(Math.random() * availableMoves.length)];
+            }
+            this.makeMove(moveIndex, 'O');
+        } else {
+            // If truly no moves available, just switch turns - don't reset the game
+            this.isPlayerTurn = true;
+            this.updateTurnIndicator();
+            this.updateStatusMessage();
+        }
     }
 
     findWinningMove(symbol) {
@@ -234,8 +270,82 @@ class InfiniteTicTacToe {
         return symbolMoves.length > 0 ? symbolMoves[0].index : null;
     }
 
+    moveOldestPiece(fromIndex, toIndex, symbol) {
+        this.isProcessingMove = true;
+
+        // Update board state - remove from old position and place at new position
+        this.board[fromIndex] = '';
+        this.board[toIndex] = symbol;
+
+        // Update move history - remove oldest move and add new move
+        const symbolMoves = this.moveHistory.filter(move => move.symbol === symbol);
+        if (symbolMoves.length > 0) {
+            const oldestMove = symbolMoves[0];
+            const moveIndex = this.moveHistory.findIndex(move =>
+                move.index === oldestMove.index &&
+                move.symbol === oldestMove.symbol &&
+                move.timestamp === oldestMove.timestamp
+            );
+            if (moveIndex !== -1) {
+                this.moveHistory.splice(moveIndex, 1);
+            }
+        }
+
+        // Add new move to history
+        this.moveHistory.push({ index: toIndex, symbol, timestamp: Date.now() });
+
+        // Visual feedback for movement
+        const fromCell = document.querySelector(`[data-index="${fromIndex}"]`);
+
+        // Add moving animation to indicate piece is being moved
+        if (fromCell) {
+            fromCell.classList.add('moving');
+            setTimeout(() => {
+                fromCell.classList.remove('moving');
+                fromCell.classList.add('fade-out');
+                setTimeout(() => {
+                    this.updateCellDisplay(fromIndex, '');
+                    fromCell.classList.remove('fade-out');
+                }, 150);
+            }, 300);
+        }
+
+        setTimeout(() => {
+            this.updateCellDisplay(toIndex, symbol);
+            this.updatePiecesCounter();
+
+            // Check for winner after move
+            if (this.checkWinner(symbol)) {
+                this.handleRoundWin(symbol);
+                return;
+            }
+
+            // Check for draw
+            if (this.isDraw()) {
+                this.isProcessingMove = false;
+                this.handleDraw();
+                return;
+            }
+
+            // Toggle turn
+            this.isPlayerTurn = !this.isPlayerTurn;
+            this.updateTurnIndicator();
+            this.updateStatusMessage();
+            this.isProcessingMove = false;
+
+            // Trigger AI move if it's AI's turn
+            if (!this.isPlayerTurn && !this.gameOver) {
+                setTimeout(() => {
+                    this.makeAIMove();
+                }, 300);
+            }
+        }, 200);
+    }
+
     removeOldestPiece(index, symbol) {
+        // Immediately update board state
         this.board[index] = '';
+
         // Only remove the specific oldest move for this symbol
         const symbolMoves = this.moveHistory.filter(move => move.symbol === symbol);
         if (symbolMoves.length > 0) {
@@ -250,8 +360,17 @@ class InfiniteTicTacToe {
             }
         }
 
-        // Update display immediately without animation conflicts
-        this.updateCellDisplay(index, '');
+        // Add visual fade out effect
+        const cell = document.querySelector(`[data-index="${index}"]`);
+        if (cell) {
+            cell.classList.add('fade-out');
+            setTimeout(() => {
+                this.updateCellDisplay(index, '');
+                cell.classList.remove('fade-out');
+            }, 200);
+        } else {
+            this.updateCellDisplay(index, '');
+        }
     }
 
     checkWinner(symbol) {
@@ -261,14 +380,18 @@ class InfiniteTicTacToe {
     }
 
     isDraw() {
-        // In infinite tic-tac-toe, a true draw is very rare
-        // It occurs when both players have 3 pieces and no winning moves are possible
-        if (this.countSymbols('X') === 3 && this.countSymbols('O') === 3) {
-            const emptyCells = this.board.filter(cell => cell === '').length;
-            if (emptyCells === 3) {
-                // Check if any player can win in the next few moves
-                return !this.canAnyoneWin();
-            }
+        // In infinite tic-tac-toe, draws are extremely rare
+        // Only declare draw if both players have 3 pieces, board is full, and truly no one can win
+        // But in practice, this should almost never happen since pieces can be moved
+        const playerPieces = this.countSymbols('X');
+        const aiPieces = this.countSymbols('O');
+        const emptyCells = this.board.filter(cell => cell === '').length;
+
+        // Only consider draw if both have max pieces and very specific conditions
+        if (playerPieces === 3 && aiPieces === 3 && emptyCells === 3) {
+            // Be more conservative - only declare draw if absolutely no winning moves exist
+            // and the position is truly deadlocked (which is very rare in infinite tic-tac-toe)
+            return false; // For now, never declare draw to prevent unwanted resets
         }
         return false;
     }
@@ -299,6 +422,7 @@ class InfiniteTicTacToe {
     }
 
     handleDraw() {
+        this.isProcessingMove = true;
         this.updateStatusMessage('Draw! Starting new round...');
         setTimeout(() => {
             this.resetRound();
@@ -306,6 +430,9 @@ class InfiniteTicTacToe {
     }
 
     handleRoundWin(symbol) {
+        // Prevent multiple win handlers from running
+        if (this.gameOver) return;
+
         const winningCombo = this.winningCombinations.find(combo =>
             combo.every(index => this.board[index] === symbol)
         );
@@ -313,6 +440,9 @@ class InfiniteTicTacToe {
         if (winningCombo) {
             this.showWinningLine(winningCombo);
         }
+
+        // Immediately mark as game over to prevent further moves
+        this.isProcessingMove = true;
 
         if (symbol === 'X') {
             this.playerScore++;
@@ -396,8 +526,17 @@ class InfiniteTicTacToe {
         this.board = Array(9).fill('');
         this.moveHistory = [];
         this.isProcessingMove = false;
+        this.roundCount++;
 
-        // Keep the same turn sequence as before the reset
+        // Alternate who starts each round for fairness
+        if (this.roundCount % 2 === 0) {
+            this.isPlayerTurn = !this.playerStartedLastRound;
+        } else {
+            this.isPlayerTurn = this.playerStartedLastRound;
+        }
+
+        this.playerStartedLastRound = this.isPlayerTurn;
+
         this.updateDisplay();
         this.updateStatusMessage();
         this.updateTurnIndicator();
@@ -419,6 +558,8 @@ class InfiniteTicTacToe {
         this.aiScore = 0;
         this.gameOver = false;
         this.isProcessingMove = false;
+        this.roundCount = 0;
+        this.playerStartedLastRound = true;
 
         this.hideGameOverModal();
         this.updateDisplay();
