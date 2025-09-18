@@ -239,6 +239,15 @@ body {
     animation: fadeOut 0.3s ease-in-out;
 }
 
+.cell.fade-out {
+    animation: fadeOutRemove 0.2s ease-in-out forwards;
+}
+
+.cell.moving {
+    animation: pulseMove 0.3s ease-in-out;
+    z-index: 10;
+}
+
 .cell.new {
     animation: placeAnimation 0.3s ease-out;
 }
@@ -265,6 +274,28 @@ body {
     100% {
         opacity: 0.5;
         transform: scale(0.9);
+    }
+}
+
+@keyframes fadeOutRemove {
+    0% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    100% {
+        opacity: 0;
+        transform: scale(0.8);
+    }
+}
+
+@keyframes pulseMove {
+    0%, 100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.2);
+        opacity: 0.8;
     }
 }
 
